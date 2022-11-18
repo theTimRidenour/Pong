@@ -8,6 +8,10 @@ main()
     const int WIN_HEIGHT = 256;
     InitWindow(WIN_WIDTH, WIN_HEIGHT, "PONG");
 
+    // universal timer
+    const float updateTime = 1.0/30.0;
+    float runningTime = 0.0;
+
     // player coordinates
     int playerOneX = 30;
     int playerOneY = (WIN_HEIGHT/2)-14;
@@ -59,7 +63,7 @@ main()
                     (r_pTwo_x >= l_ball_x) && 
                     (l_pTwo_x <= r_ball_x);
 
-    SetTargetFPS(30);
+    SetTargetFPS(60);
     while(!WindowShouldClose())
     {
         // update edges
@@ -90,6 +94,9 @@ main()
                     (l_pTwo_x <= r_ball_x);
 
         BeginDrawing();
+
+        const float dT{ GetFrameTime() };
+        runningTime += dT;
         
         // draw background
         ClearBackground(BLACK);
@@ -103,90 +110,94 @@ main()
         DrawRectangle(playerOneX, playerOneY, playerWidth, playerHeight, WHITE);
         DrawRectangle(playerTwoX, playerTwoY, playerWidth, playerHeight, WHITE);
 
-        // check if winner and draw ball
-        if ((playerOneScore >= 7) || (playerTwoScore >= 7)) {
-            ballX = WIN_WIDTH/2;
-            ballY = WIN_HEIGHT/2;
-            DrawText("Game Over!", (WIN_WIDTH/2)+5, (WIN_HEIGHT/2)-23, 20, WHITE);
-            if (playerOneScore >= 7) {
-                DrawText("Player One Wins!!!", (WIN_WIDTH/2)+5, WIN_HEIGHT/2, 20, WHITE);
-            } else {
-                DrawText("Computer Wins!!!", (WIN_WIDTH/2)+5, WIN_HEIGHT/2, 20, WHITE);
-            }
-        } else {
+        // Draw ball
+        if (playerOneScore < 7 && playerTwoScore < 7) {
             DrawCircle(ballX, ballY, ballRadius, WHITE);
         }
 
-        // player movement
-        if (IsKeyDown(KEY_W)) {
-            playerOneY -= 7;
-            if (playerOneY < 10) {
-                playerOneY = 10;
-            }
-        } else if (IsKeyDown(KEY_S)) {
-            playerOneY += 7;
-            if (playerOneY > WIN_HEIGHT - playerHeight) {
-                playerOneY = WIN_HEIGHT - playerHeight;
+        // check for winner
+        if (playerOneScore >= 7 || playerTwoScore >= 7) {
+            ballX=WIN_WIDTH/2;
+            ballY=WIN_HEIGHT/2;
+            DrawText("Game Over!", (WIN_WIDTH/2) + 5, (WIN_HEIGHT/2) - 23, 20, WHITE);
+            if (playerOneScore >= 7) {
+                DrawText("Player One Wins!!!", (WIN_WIDTH/2) + 5, WIN_HEIGHT/2, 20, WHITE);
+            } else {
+                DrawText("Computer Wins!!!", (WIN_WIDTH/2) + 5, WIN_HEIGHT/2, 20 , WHITE);
             }
         }
 
-        // computer movement
-        if (ballMoveX > 0) {
-            if (ballY > playerTwoY+14 && ballX >= (WIN_WIDTH/2)-10) {
-                playerTwoY += 6;
-                if (playerTwoY > WIN_HEIGHT - playerHeight) {
-                    playerTwoY = WIN_HEIGHT - playerHeight;
+        if ( runningTime >= updateTime) {
+            // player movement
+            if (IsKeyDown(KEY_W)) {
+                playerOneY -= 7;
+                if (playerOneY < 10) {
+                    playerOneY = 10;
                 }
-            } else if (ballY < playerTwoY+14) {
-                playerTwoY -= 7;
-                if (playerTwoY < 10) {
-                    playerTwoY = 10;
+            } else if (IsKeyDown(KEY_S)) {
+                playerOneY += 7;
+                if (playerOneY > WIN_HEIGHT - playerHeight) {
+                    playerOneY = WIN_HEIGHT - playerHeight;
                 }
-            }
-        } 
-
-        // ball movement
-        if (collision_with_player_one || collision_with_player_two) {
-            if (collision_with_player_one) {
-                playerCenter = u_pOne_y + 14;
-                ballX = r_pOne_x + 8;
-                collision_with_player_one = false;
-            } else {
-                playerCenter = u_pTwo_y + 14;
-                ballX = l_pTwo_x - 8;
-                collision_with_player_two = false;
-            }
-            if (u_ball_y + ballRadius <= playerCenter) {
-                ballMoveY = -1;
-            } else {
-                ballMoveY = 1;
-            }
-            ballMoveX = -ballMoveX;
-        } else {
-             // ball movement x-coordinate
-            ballX += 7 * ballMoveX;
-            if (ballX > WIN_WIDTH) {
-                ballX = WIN_WIDTH/2;
-                ballMoveX = -ballMoveX;
-                playerOneScore += 1;
-            } else if (ballX < 0) {
-                ballX = WIN_WIDTH/2;
-                ballMoveX = -ballMoveX;
-                playerTwoScore += 1;
             }
 
-            // ball movement y-coordinate
-            ballY += 7 * ballMoveY;
-            if (ballY > WIN_HEIGHT) {
-                ballY = WIN_HEIGHT;
-                ballMoveY = -1;
-            } else if (ballY < 10) {
-                ballY = 10;
-                ballMoveY = 1;
+            // computer movement
+            if (ballMoveX > 0) {
+                if (ballY > playerTwoY+14 && ballX >= (WIN_WIDTH/2)-10) {
+                    playerTwoY += 6;
+                    if (playerTwoY > WIN_HEIGHT - playerHeight) {
+                        playerTwoY = WIN_HEIGHT - playerHeight;
+                    }
+                } else if (ballY < playerTwoY+14) {
+                    playerTwoY -= 7;
+                    if (playerTwoY < 10) {
+                        playerTwoY = 10;
+                    }
+                }
+            } 
+
+            // ball movement
+            if (collision_with_player_one || collision_with_player_two) {
+                if (collision_with_player_one) {
+                    playerCenter = u_pOne_y + 14;
+                    ballX = r_pOne_x + 8;
+                    collision_with_player_one = false;
+                } else {
+                    playerCenter = u_pTwo_y + 14;
+                    ballX = l_pTwo_x - 8;
+                    collision_with_player_two = false;
+                }
+                if (u_ball_y + ballRadius <= playerCenter) {
+                    ballMoveY = -1;
+                } else {
+                    ballMoveY = 1;
+                }
+                ballMoveX = -ballMoveX;
+            } else {
+                // ball movement x-coordinate
+                ballX += 7 * ballMoveX;
+                if (ballX > WIN_WIDTH) {
+                    ballX = WIN_WIDTH/2;
+                    ballMoveX = -ballMoveX;
+                    playerOneScore += 1;
+                } else if (ballX < 0) {
+                    ballX = WIN_WIDTH/2;
+                    ballMoveX = -ballMoveX;
+                    playerTwoScore += 1;
+                }
+
+                // ball movement y-coordinate
+                ballY += 7 * ballMoveY;
+                if (ballY > WIN_HEIGHT) {
+                    ballY = WIN_HEIGHT;
+                    ballMoveY = -1;
+                } else if (ballY < 10) {
+                    ballY = 10;
+                    ballMoveY = 1;
+                }
             }
+            runningTime = 0.0;
         }
-
-
         EndDrawing();
     }
     CloseWindow();
